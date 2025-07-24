@@ -18,7 +18,7 @@ docker-compose -f src/main/docker/docker-compose.yml up -d
 Esto creará una base de datos PostgreSQL con:
 - **Base de datos:** `quarkusDB`
 - **Usuario:** `postgres` (verifica en el docker-compose.yml)
-- **Contraseña:** `sosamejia`
+- **Contraseña:** `noegiron`
 - **Puerto:** `5432`
 
 > **Nota:** Si cambiaste el usuario en el docker-compose.yml, asegúrate de que `src/main/resources/application.properties` tenga el mismo usuario y contraseña.
