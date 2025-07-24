@@ -5,8 +5,8 @@ services:
     container_name: quarkus-postgres
     environment:
       POSTGRES_DB: quarkusDB
-      POSTGRES_USER: sosamejia
-      POSTGRES_PASSWORD: sosamejia
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: noegiron
     ports:
       - "5432:5432"
     volumes:
