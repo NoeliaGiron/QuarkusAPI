@@ -87,6 +87,12 @@ La API estará disponible en: [http://localhost:8080](http://localhost:8080)
   ```sh
   docker-compose -f src/main/docker/docker-compose.yml down
   ```
+- **Si necesitas reiniciar la base de datos y eliminar todos los datos (por ejemplo, para restablecer la contraseña o limpiar el volumen), ejecuta:**
+  ```sh
+  docker-compose -f src/main/docker/docker-compose.yml down -v
+  docker-compose -f src/main/docker/docker-compose.yml up -d
+  ```
+  > Esto eliminará todos los datos almacenados en PostgreSQL y recreará el contenedor con la configuración actual del archivo docker-compose.yml.
 
 ---
 
