@@ -35,6 +35,9 @@ $env:Path = "$env:JAVA_HOME\bin;" + $env:Path
 
 
 ./mvnw clean package
+
+Si sale error: .\mvnw clean package -DskipTests
+
 ./mvnw quarkus:dev
 ```
 
