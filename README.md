@@ -3,7 +3,7 @@
 Este proyecto es una API RESTful para gestionar películas, críticos y reseñas usando Quarkus, JPA y PostgreSQL.
 
 ## Requisitos
-- Java 21
+- Java 24
 - Maven
 - Docker y Docker Compose
 
@@ -30,7 +30,14 @@ El archivo `src/main/resources/application.properties` ya está configurado para
 ## 3. Compilar y correr la aplicación
 
 ```sh
+$env:JAVA_HOME = "C:\Program Files\Java\jdk-24"
+$env:Path = "$env:JAVA_HOME\bin;" + $env:Path
+
+
 ./mvnw clean package
+
+Si sale error: .\mvnw clean package -DskipTests
+
 ./mvnw quarkus:dev
 ```
 
