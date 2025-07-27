@@ -18,7 +18,7 @@ docker-compose -f src/main/docker/docker-compose.yml up -d
 Esto creará una base de datos PostgreSQL con:
 - **Base de datos:** `quarkusDB`
 - **Usuario:** `postgres` (verifica en el docker-compose.yml)
-- **Contraseña:** `noegiron`
+- **Contraseña:** `12345`
 - **Puerto:** `5432`
 
 > **Nota:** Si cambiaste el usuario en el docker-compose.yml, asegúrate de que `src/main/resources/application.properties` tenga el mismo usuario y contraseña.
@@ -48,7 +48,8 @@ La API estará disponible en: [http://localhost:8080](http://localhost:8080)
 ### Películas (Movie)
 - **Crear:**
   ```sh
-  curl -X POST http://localhost:8080/movies -H "Content-Type: application/json" -d '{"title":"Inception"}'
+  curl -X POST http://localhost:8080/movies -H "Content-Type: application/json" -d "{\"title\":\"Inception\"}"
+
   ```
 - **Listar:**
   ```sh
@@ -60,7 +61,8 @@ La API estará disponible en: [http://localhost:8080](http://localhost:8080)
   ```
 - **Actualizar:**
   ```sh
-  curl -X PUT http://localhost:8080/movies/1 -H "Content-Type: application/json" -d '{"title":"Matrix"}'
+  curl -X PUT http://localhost:8080/movies/1 -H "Content-Type: application/json" -d "{\"title\":\"Matrix\"}"
+
   ```
 - **Eliminar:**
   ```sh
@@ -70,7 +72,8 @@ La API estará disponible en: [http://localhost:8080](http://localhost:8080)
 ### Críticos (Critic)
 - **Crear:**
   ```sh
-  curl -X POST http://localhost:8080/critics -H "Content-Type: application/json" -d '{"name":"Roger Ebert"}'
+  curl -X POST http://localhost:8080/critics -H "Content-Type: application/json" -d "{\"name\":\"Roger Ebert\"}"
+
   ```
 - **Listar:**
   ```sh
@@ -80,7 +83,8 @@ La API estará disponible en: [http://localhost:8080](http://localhost:8080)
 ### Reseñas (Review)
 - **Crear:**
   ```sh
-  curl -X POST http://localhost:8080/reviews -H "Content-Type: application/json" -d '{"movieId":1,"criticId":1,"rating":5,"comment":"Excelente!"}'
+  curl -X POST http://localhost:8080/reviews -H "Content-Type: application/json" -d "{\"movieId\":1,\"criticId\":1,\"rating\":5,\"comment\":\"Excelente!\"}"
+
   ```
 - **Listar:**
   ```sh
