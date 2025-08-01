@@ -9,7 +9,7 @@ pipeline {
     environment {
         IMAGE_NAME = "quarkusapi"
         DOCKERFILE_PATH = "src/main/docker/Dockerfile.jvm"
-        AZURE_APP_NAME = "noelia-app" // nombre real de tu App Service
+        AZURE_APP_NAME = "noelia-app"
         AZURE_RESOURCE_GROUP = "rg-adapted-serval"
         AZURE_REGISTRY = "quarkusappacr123.azurecr.io"
         AZURE_SERVICE_PRINCIPAL = credentials('azure-service-principal') // JSON con clientId, clientSecret, tenantId
@@ -39,7 +39,7 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'acr-credentials', usernameVariable: 'ACR_USER', passwordVariable: 'ACR_PASS')]) {
                     sh """
-                        echo \$ACR_PASS | docker login ${AZURE_REGISTRY} --username \$ACR_USER --password-stdin
+                      echo \$ACR_PASS | docker login ${AZURE_REGISTRY} --username \$ACR_USER --password-stdin
                     """
                 }
             }
