@@ -3,7 +3,11 @@ pipeline {
 
     environment {
         IMAGE_NAME = "quarkusapi"
-        DOCKER_COMPOSE_PATH = "src/main/docker"
+        DOCKERFILE_PATH = "src/main/docker/Dockerfile.jvm"
+        AZURE_APP_NAME = "tu-app-service-name"
+        AZURE_RESOURCE_GROUP = "tu-resource-group"
+        AZURE_REGISTRY = "tu-registry.azurecr.io"
+        AZURE_SERVICE_PRINCIPAL = credentials('azure-service-principal') // JSON credencial almacenada en Jenkins
     }
 
     stages {
@@ -15,56 +19,60 @@ pipeline {
 
         stage('Compilar Proyecto Quarkus') {
             steps {
-                // Solucionar permisos para mvnw
                 sh 'chmod +x mvnw'
                 sh './mvnw clean package -DskipTests'
-            }
-        }
-
-        stage('Verificar acceso a Docker') {
-            steps {
-                script {
-                    sh '''#!/bin/bash
-                    echo "Usuario y grupos dentro del contenedor Jenkins:"
-                    id
-                    groups
-
-                    echo "Probando docker ps:"
-                    docker ps
-
-                    echo "Ajustando permisos al socket de Docker (temporal para pruebas)"
-                    sudo chmod 666 /var/run/docker.sock || true
-                    '''
-                }
             }
         }
 
         stage('Construir Imagen Docker') {
             steps {
                 script {
-                    sh '''#!/bin/bash
-                    docker build -f ${DOCKER_COMPOSE_PATH}/Dockerfile.jvm -t ${IMAGE_NAME}:latest .
-                    '''
+                    sh "docker build -f ${DOCKERFILE_PATH} -t ${IMAGE_NAME}:latest ."
                 }
             }
         }
 
-stage('Levantar contenedores') {
-    steps {
-        dir("${DOCKER_COMPOSE_PATH}") {
-            sh 'docker-compose up -d'
+        stage('Login a Azure Container Registry') {
+            steps {
+                script {
+                    // Extraemos del JSON las credenciales con jq
+                    def sp = readJSON text: env.AZURE_SERVICE_PRINCIPAL
+                    sh """
+                      echo '${sp.clientSecret}' | docker login ${AZURE_REGISTRY} --username ${sp.clientId} --password-stdin
+                    """
+                }
+            }
         }
-    }
-}
 
+        stage('Taggear y Push de Imagen') {
+            steps {
+                script {
+                    sh "docker tag ${IMAGE_NAME}:latest ${AZURE_REGISTRY}/${IMAGE_NAME}:latest"
+                    sh "docker push ${AZURE_REGISTRY}/${IMAGE_NAME}:latest"
+                }
+            }
+        }
+
+        stage('Desplegar en Azure App Service') {
+            steps {
+                script {
+                    def sp = readJSON text: env.AZURE_SERVICE_PRINCIPAL
+                    sh """
+                        az login --service-principal -u ${sp.clientId} -p ${sp.clientSecret} --tenant ${sp.tenantId}
+                        az webapp config container set --name ${AZURE_APP_NAME} --resource-group ${AZURE_RESOURCE_GROUP} --docker-custom-image-name ${AZURE_REGISTRY}/${IMAGE_NAME}:latest
+                        az webapp restart --name ${AZURE_APP_NAME} --resource-group ${AZURE_RESOURCE_GROUP}
+                    """
+                }
+            }
+        }
     }
 
     post {
         success {
-            echo '✅ Aplicación Quarkus construida y ejecutada exitosamente.'
+            echo '✅ Despliegue exitoso en Azure App Service'
         }
         failure {
-            echo '❌ La construcción falló.'
+            echo '❌ Hubo un error en el pipeline'
         }
     }
 }
