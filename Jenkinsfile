@@ -49,13 +49,14 @@ pipeline {
             }
         }
 
-        stage('Levantar contenedores') {
-            steps {
-                dir("${DOCKER_COMPOSE_PATH}") {
-                    sh 'docker compose up -d'
-                }
-            }
+stage('Levantar contenedores') {
+    steps {
+        dir("${DOCKER_COMPOSE_PATH}") {
+            sh 'docker-compose up -d'
         }
+    }
+}
+
     }
 
     post {
