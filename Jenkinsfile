@@ -27,8 +27,7 @@ pipeline {
         stage('Compilar Proyecto Quarkus') {
             steps {
                 script {
-                    // Ejecutar contenedor con usuario 1000:1000 para evitar problemas de permisos en .m2
-                    docker.image('maven:3.9.4-eclipse-temurin-21').inside("-v $WORKSPACE/.m2:/root/.m2 -u 1000:1000") {
+                    docker.image('maven:3.9.4-eclipse-temurin-21').inside("-v $WORKSPACE/.m2:/root/.m2 -u 1000:1000 -e HOME=/root") {
                         sh 'chmod +x mvnw'
                         sh './mvnw clean package -DskipTests'
                     }
