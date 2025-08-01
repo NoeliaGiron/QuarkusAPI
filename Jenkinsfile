@@ -15,16 +15,36 @@ pipeline {
 
         stage('Compilar Proyecto Quarkus') {
             steps {
-                // Dar permiso de ejecución al wrapper de Maven
+                // Solucionar permisos para mvnw
                 sh 'chmod +x mvnw'
                 sh './mvnw clean package -DskipTests'
+            }
+        }
+
+        stage('Verificar acceso a Docker') {
+            steps {
+                script {
+                    sh '''#!/bin/bash
+                    echo "Usuario y grupos dentro del contenedor Jenkins:"
+                    id
+                    groups
+
+                    echo "Probando docker ps:"
+                    docker ps
+
+                    echo "Ajustando permisos al socket de Docker (temporal para pruebas)"
+                    sudo chmod 666 /var/run/docker.sock || true
+                    '''
+                }
             }
         }
 
         stage('Construir Imagen Docker') {
             steps {
                 script {
-                    sh "docker build -f ${DOCKER_COMPOSE_PATH}/Dockerfile.jvm -t ${IMAGE_NAME}:latest ."
+                    sh '''#!/bin/bash
+                    docker build -f ${DOCKER_COMPOSE_PATH}/Dockerfile.jvm -t ${IMAGE_NAME}:latest .
+                    '''
                 }
             }
         }
