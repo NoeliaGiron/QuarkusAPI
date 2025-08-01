@@ -15,6 +15,8 @@ pipeline {
 
         stage('Compilar Proyecto Quarkus') {
             steps {
+                // ⚠️ Solución al error de permiso denegado
+                sh 'chmod +x mvnw'
                 sh './mvnw clean package -DskipTests'
             }
         }
@@ -38,10 +40,10 @@ pipeline {
 
     post {
         success {
-            echo 'Aplicación Quarkus construida y ejecutada exitosamente.'
+            echo '✅ Aplicación Quarkus construida y ejecutada exitosamente.'
         }
         failure {
-            echo 'La construcción falló.'
+            echo '❌ La construcción falló.'
         }
     }
 }
