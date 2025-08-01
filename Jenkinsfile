@@ -4,7 +4,7 @@ pipeline {
     environment {
         IMAGE_NAME = "quarkusapi"
         DOCKERFILE_PATH = "src/main/docker/Dockerfile.jvm"
-        AZURE_APP_NAME = "noelia-app"           // Cambia por el nombre real de tu App Service
+        AZURE_APP_NAME = "noelia-app"          // nombre real de tu app service
         AZURE_RESOURCE_GROUP = "rg-adapted-serval"
         AZURE_REGISTRY = "quarkusappacr123.azurecr.io"
         AZURE_SERVICE_PRINCIPAL = credentials('azure-service-principal') // JSON con clientId, clientSecret, tenantId
@@ -18,14 +18,12 @@ pipeline {
         }
 
         stage('Compilar Proyecto Quarkus') {
-            agent {
-                docker {
-                    image 'maven:3.9-eclipse-temurin-17'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock'
-                }
-            }
             steps {
-                sh 'mvn clean package -DskipTests'
+                // Usamos un contenedor Docker con Maven y Java 21 para compilar
+                docker.image('maven:3.9.4-eclipse-temurin-21').inside {
+                    sh 'chmod +x mvnw'
+                    sh './mvnw clean package -DskipTests'
+                }
             }
         }
 
@@ -53,12 +51,6 @@ pipeline {
         }
 
         stage('Desplegar en Azure App Service') {
-            agent {
-                docker {
-                    image 'mcr.microsoft.com/azure-cli'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock'
-                }
-            }
             steps {
                 script {
                     def sp = readJSON text: env.AZURE_SERVICE_PRINCIPAL
