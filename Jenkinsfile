@@ -52,7 +52,7 @@ pipeline {
         stage('Levantar contenedores') {
             steps {
                 dir("${DOCKER_COMPOSE_PATH}") {
-                    sh 'docker compose up -d'
+                    sh 'docker-compose up -d'
                 }
             }
         }
