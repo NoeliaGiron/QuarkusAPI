@@ -7,11 +7,17 @@ pipeline {
         AZURE_APP_NAME = "noelia-app"
         AZURE_RESOURCE_GROUP = "rg-adapted-serval"
         AZURE_REGISTRY = "quarkusappacr123.azurecr.io"
-        AZURE_SERVICE_PRINCIPAL = credentials('azure-service-principal') // JSON con clientId, clientSecret, tenantId
-        ACR_CREDENTIALS = credentials('acr-credentials') // usuario y pass para ACR
+        AZURE_SERVICE_PRINCIPAL = credentials('azure-service-principal')
     }
 
     stages {
+        stage('Preparar .m2') {
+            steps {
+                // Crear directorio .m2 local con permisos abiertos para evitar AccessDenied
+                sh 'mkdir -p $WORKSPACE/.m2 && chmod -R 777 $WORKSPACE/.m2'
+            }
+        }
+
         stage('Clonar Repositorio') {
             steps {
                 git url: 'https://github.com/NoeliaGiron/QuarkusAPI.git', branch: 'main'
@@ -20,9 +26,8 @@ pipeline {
 
         stage('Compilar Proyecto Quarkus') {
             steps {
-                // Usamos docker container para build con Maven + Java 21
                 script {
-                    docker.image('maven:3.9.4-eclipse-temurin-21').inside {
+                    docker.image('maven:3.9.4-eclipse-temurin-21').inside("-v $WORKSPACE/.m2:/root/.m2") {
                         sh 'chmod +x mvnw'
                         sh './mvnw clean package -DskipTests'
                     }
@@ -38,9 +43,9 @@ pipeline {
 
         stage('Login a Azure Container Registry') {
             steps {
-                script {
+                withCredentials([usernamePassword(credentialsId: 'acr-credentials', usernameVariable: 'ACR_USER', passwordVariable: 'ACR_PASS')]) {
                     sh """
-                      echo '${ACR_CREDENTIALS_PSW}' | docker login ${AZURE_REGISTRY} --username ${ACR_CREDENTIALS_USR} --password-stdin
+                      echo \$ACR_PASS | docker login ${AZURE_REGISTRY} --username \$ACR_USER --password-stdin
                     """
                 }
             }
@@ -57,14 +62,11 @@ pipeline {
             steps {
                 script {
                     def sp = readJSON text: env.AZURE_SERVICE_PRINCIPAL
-                    // Usamos contenedor azure-cli para ejecutar comandos az
-                    docker.image('mcr.microsoft.com/azure-cli').inside {
-                        sh """
-                            az login --service-principal -u ${sp.clientId} -p ${sp.clientSecret} --tenant ${sp.tenantId}
-                            az webapp config container set --name ${AZURE_APP_NAME} --resource-group ${AZURE_RESOURCE_GROUP} --docker-custom-image-name ${AZURE_REGISTRY}/${IMAGE_NAME}:latest
-                            az webapp restart --name ${AZURE_APP_NAME} --resource-group ${AZURE_RESOURCE_GROUP}
-                        """
-                    }
+                    sh """
+                        az login --service-principal -u ${sp.clientId} -p ${sp.clientSecret} --tenant ${sp.tenantId}
+                        az webapp config container set --name ${AZURE_APP_NAME} --resource-group ${AZURE_RESOURCE_GROUP} --docker-custom-image-name ${AZURE_REGISTRY}/${IMAGE_NAME}:latest
+                        az webapp restart --name ${AZURE_APP_NAME} --resource-group ${AZURE_RESOURCE_GROUP}
+                    """
                 }
             }
         }
