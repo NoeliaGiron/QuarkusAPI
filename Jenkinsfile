@@ -4,10 +4,10 @@ pipeline {
     environment {
         IMAGE_NAME = "quarkusapi"
         DOCKERFILE_PATH = "src/main/docker/Dockerfile.jvm"
-        AZURE_APP_NAME = "tu-app-service-name"
-        AZURE_RESOURCE_GROUP = "tu-resource-group"
-        AZURE_REGISTRY = "tu-registry.azurecr.io"
-        AZURE_SERVICE_PRINCIPAL = credentials('azure-service-principal') // JSON credencial almacenada en Jenkins
+        AZURE_APP_NAME = "noelia-app" // nombre real de tu app service
+        AZURE_RESOURCE_GROUP = "rg-adapted-serval"
+        AZURE_REGISTRY = "quarkusappacr123.azurecr.io"
+        AZURE_SERVICE_PRINCIPAL = credentials('azure-service-principal') // JSON con clientId, clientSecret, tenantId
     }
 
     stages {
@@ -26,19 +26,15 @@ pipeline {
 
         stage('Construir Imagen Docker') {
             steps {
-                script {
-                    sh "docker build -f ${DOCKERFILE_PATH} -t ${IMAGE_NAME}:latest ."
-                }
+                sh "docker build -f ${DOCKERFILE_PATH} -t ${IMAGE_NAME}:latest ."
             }
         }
 
         stage('Login a Azure Container Registry') {
             steps {
-                script {
-                    // Extraemos del JSON las credenciales con jq
-                    def sp = readJSON text: env.AZURE_SERVICE_PRINCIPAL
+                withCredentials([usernamePassword(credentialsId: 'acr-credentials', usernameVariable: 'ACR_USER', passwordVariable: 'ACR_PASS')]) {
                     sh """
-                      echo '${sp.clientSecret}' | docker login ${AZURE_REGISTRY} --username ${sp.clientId} --password-stdin
+                      echo \$ACR_PASS | docker login ${AZURE_REGISTRY} --username \$ACR_USER --password-stdin
                     """
                 }
             }
@@ -46,10 +42,8 @@ pipeline {
 
         stage('Taggear y Push de Imagen') {
             steps {
-                script {
-                    sh "docker tag ${IMAGE_NAME}:latest ${AZURE_REGISTRY}/${IMAGE_NAME}:latest"
-                    sh "docker push ${AZURE_REGISTRY}/${IMAGE_NAME}:latest"
-                }
+                sh "docker tag ${IMAGE_NAME}:latest ${AZURE_REGISTRY}/${IMAGE_NAME}:latest"
+                sh "docker push ${AZURE_REGISTRY}/${IMAGE_NAME}:latest"
             }
         }
 
