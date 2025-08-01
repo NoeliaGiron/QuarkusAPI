@@ -11,10 +11,13 @@ pipeline {
     }
 
     stages {
+
         stage('Preparar .m2') {
             steps {
-                // Crear directorio .m2 local con permisos abiertos
-                sh 'mkdir -p $WORKSPACE/.m2 && chmod -R 777 $WORKSPACE/.m2'
+                sh '''
+                    mkdir -p $WORKSPACE/.m2
+                    chmod -R 777 $WORKSPACE/.m2
+                '''
             }
         }
 
@@ -24,11 +27,22 @@ pipeline {
             }
         }
 
+        stage('Verificar mvnw') {
+            steps {
+                sh '''
+                    if [ ! -f mvnw ]; then
+                        echo "❌ mvnw no existe en el proyecto"
+                        exit 1
+                    fi
+                    chmod +x mvnw
+                '''
+            }
+        }
+
         stage('Compilar Proyecto Quarkus') {
             steps {
                 script {
                     docker.image('maven:3.9.4-eclipse-temurin-21').inside("-u root -v $WORKSPACE/.m2:/root/.m2") {
-                        sh 'chmod +x mvnw'
                         sh './mvnw clean package -DskipTests'
                     }
                 }
@@ -64,8 +78,13 @@ pipeline {
                     def sp = readJSON text: env.AZURE_SERVICE_PRINCIPAL
                     sh """
                         az login --service-principal -u ${sp.clientId} -p ${sp.clientSecret} --tenant ${sp.tenantId}
-                        az webapp config container set --name ${AZURE_APP_NAME} --resource-group ${AZURE_RESOURCE_GROUP} --docker-custom-image-name ${AZURE_REGISTRY}/${IMAGE_NAME}:latest
-                        az webapp restart --name ${AZURE_APP_NAME} --resource-group ${AZURE_RESOURCE_GROUP}
+                        az webapp config container set \
+                            --name ${AZURE_APP_NAME} \
+                            --resource-group ${AZURE_RESOURCE_GROUP} \
+                            --docker-custom-image-name ${AZURE_REGISTRY}/${IMAGE_NAME}:latest
+                        az webapp restart \
+                            --name ${AZURE_APP_NAME} \
+                            --resource-group ${AZURE_RESOURCE_GROUP}
                     """
                 }
             }
