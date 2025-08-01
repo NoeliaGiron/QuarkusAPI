@@ -7,7 +7,8 @@ pipeline {
         AZURE_APP_NAME = "noelia-app"
         AZURE_RESOURCE_GROUP = "rg-adapted-serval"
         AZURE_REGISTRY = "quarkusappacr123.azurecr.io"
-        AZURE_SERVICE_PRINCIPAL = credentials('azure-service-principal')
+        AZURE_SERVICE_PRINCIPAL = credentials('azure-service-principal') // JSON con clientId, clientSecret, tenantId
+        ACR_CREDENTIALS = credentials('acr-credentials') // usuario y pass para ACR
     }
 
     stages {
@@ -18,15 +19,14 @@ pipeline {
         }
 
         stage('Compilar Proyecto Quarkus') {
-            agent {
-                docker {
-                    image 'maven:3.9.4-eclipse-temurin-21'
-                    args '-v $HOME/.m2:/root/.m2'
-                }
-            }
             steps {
-                sh 'chmod +x mvnw'
-                sh './mvnw clean package -DskipTests'
+                // Usamos docker container para build con Maven + Java 21
+                script {
+                    docker.image('maven:3.9.4-eclipse-temurin-21').inside {
+                        sh 'chmod +x mvnw'
+                        sh './mvnw clean package -DskipTests'
+                    }
+                }
             }
         }
 
@@ -38,9 +38,9 @@ pipeline {
 
         stage('Login a Azure Container Registry') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'acr-credentials', usernameVariable: 'ACR_USER', passwordVariable: 'ACR_PASS')]) {
+                script {
                     sh """
-                      echo \$ACR_PASS | docker login ${AZURE_REGISTRY} --username \$ACR_USER --password-stdin
+                      echo '${ACR_CREDENTIALS_PSW}' | docker login ${AZURE_REGISTRY} --username ${ACR_CREDENTIALS_USR} --password-stdin
                     """
                 }
             }
@@ -57,11 +57,14 @@ pipeline {
             steps {
                 script {
                     def sp = readJSON text: env.AZURE_SERVICE_PRINCIPAL
-                    sh """
-                        az login --service-principal -u ${sp.clientId} -p ${sp.clientSecret} --tenant ${sp.tenantId}
-                        az webapp config container set --name ${AZURE_APP_NAME} --resource-group ${AZURE_RESOURCE_GROUP} --docker-custom-image-name ${AZURE_REGISTRY}/${IMAGE_NAME}:latest
-                        az webapp restart --name ${AZURE_APP_NAME} --resource-group ${AZURE_RESOURCE_GROUP}
-                    """
+                    // Usamos contenedor azure-cli para ejecutar comandos az
+                    docker.image('mcr.microsoft.com/azure-cli').inside {
+                        sh """
+                            az login --service-principal -u ${sp.clientId} -p ${sp.clientSecret} --tenant ${sp.tenantId}
+                            az webapp config container set --name ${AZURE_APP_NAME} --resource-group ${AZURE_RESOURCE_GROUP} --docker-custom-image-name ${AZURE_REGISTRY}/${IMAGE_NAME}:latest
+                            az webapp restart --name ${AZURE_APP_NAME} --resource-group ${AZURE_RESOURCE_GROUP}
+                        """
+                    }
                 }
             }
         }
