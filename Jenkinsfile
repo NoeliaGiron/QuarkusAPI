@@ -15,7 +15,7 @@ pipeline {
 
         stage('Compilar Proyecto Quarkus') {
             steps {
-                // ⚠️ Solución al error de permiso denegado
+                // Dar permiso de ejecución al wrapper de Maven
                 sh 'chmod +x mvnw'
                 sh './mvnw clean package -DskipTests'
             }
